@@ -7,7 +7,7 @@ from pathlib import Path
 import os
 from flask import Flask, flash, request, redirect, url_for
 from werkzeug.utils import secure_filename
-
+import file_manager
 app = Flask(__name__)
 
 app.config.update(
@@ -21,33 +21,12 @@ app.config.update(
 @app.route('/files/<file_name>', methods=['GET', 'DELETE'])
 def list(file_name):
     if request.method == 'GET':
+
         if file_name is None:
             onlyfiles = [f for f in listdir(app.config['UPLOAD_FOLDER']) if
                          isfile(join(app.config['UPLOAD_FOLDER'], f))]
             return jsonify(onlyfiles)
-        try:
-            file_type = mimetypes.MimeTypes().guess_type(app.config['UPLOAD_FOLDER'] + file_name)[0]
-            if file_type is not None:
-                if 'text' in file_type:
-                    with open(app.config['UPLOAD_FOLDER'] + file_name, 'r') as f:
-                        data = f.read()
-                        return jsonify(data)
-
-                elif 'application' in file_type:
-                    try:
-                        result = os.system(app.config['UPLOAD_FOLDER'] + file_name)
-                        return jsonify(result)
-                    except BaseException as ex:
-                        return jsonify(ex.strerror)
-                # For all the others files return the path
-                else:
-                    file_url = app.config['UPLOAD_FOLDER'] + file_name
-                    return jsonify(file_url)
-
-            else:
-                return jsonify("Can't recognize file type")
-        except FileNotFoundError as ex:
-            return jsonify(ex.strerror)
+        return file_manager.FileManager.manage_file(app.config['UPLOAD_FOLDER'] + file_name)
 
     elif request.method == 'DELETE':
         try:
